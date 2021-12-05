@@ -1,0 +1,56 @@
+#!/bin/bash
+
+help() {
+    cat <<EOF
+Usage: gh textual REPO_URL
+
+Interact with Awesome Textual via GitHub CLI.
+Feel free to share your code with others!
+
+Arguments:
+    REPO_URL  [required]
+
+Options:
+    -h, --help
+        Display this help message.
+    --url
+        Textual GitHub URL repository.
+EOF
+}
+
+push() {
+    tmpfile=$(mktemp -d /tmp/gh-textual.XXXXXX)
+    cd "$tmpfile"
+    # TODO: Fork and shallow clone, instead of fully cloning it.
+    gh repo fork --clone git@github.com:Kludex/awesome-textual.git
+    project=$(ls)
+    cd "$project"
+    name=${1##*/}
+    branch=widget/$name
+    git checkout -b $branch
+    echo "$1" >widget.txt
+    git add widget.txt
+    git commit -m "[widget] $name"
+    git push origin $branch
+    gh pr create --fill --head $branch --base main
+}
+
+case "$1" in
+"")
+    push "$(git config --get remote.origin.url)"
+    exit 0
+    ;;
+-h | --help)
+    help
+    exit 0
+    ;;
+--url)
+    push $2
+    exit 0
+    ;;
+*)
+    help
+    exit 0
+    ;;
+esac
+shift
